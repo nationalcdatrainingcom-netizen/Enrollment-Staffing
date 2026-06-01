@@ -51,11 +51,11 @@ app.post('/api/login', async (req, res) => {
   const name = String(req.body.name || '').toLowerCase().trim();
   const pw = String(req.body.password || '');
   if (!name || !pw) return res.status(400).json({ error: 'missing', message: 'Enter your first name and password.' });
-  if (pw !== LOGIN_PASSWORD) return res.status(401).json({ error: 'bad_password', message: 'Incorrect password.' });
   let user;
   try { user = await db.getUser(name); }
   catch (e) { return res.status(500).json({ error: 'db', message: 'Could not reach the database.' }); }
   if (!user) return res.status(403).json({ error: 'not_provisioned', message: `"${req.body.name}" isn't set up yet. Ask Mary to add you.` });
+  if (pw.toLowerCase() !== LOGIN_PASSWORD.toLowerCase()) return res.status(401).json({ error: 'bad_password', message: 'Incorrect password.' });
   const token = jwt.sign({ username: user.username }, SECRET, { expiresIn: '12h' });
   setCookie(res, token);
   res.json({ ok: true });
