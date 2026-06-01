@@ -1,0 +1,19 @@
+{
+  "name": "tcc-center-health",
+  "version": "1.0.0",
+  "description": "TCC Center Health — director Enrollment & Staffing (Phase 1)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "migrate": "node -e \"require('./db').migrate().then(()=>{console.log('migrated');process.exit(0)}).catch(e=>{console.error(e);process.exit(1)})\"",
+    "seed": "node -e \"require('./db').seed().then(()=>{console.log('seeded');process.exit(0)}).catch(e=>{console.error(e);process.exit(1)})\""
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.22.2",
+    "jsonwebtoken": "^9.0.3",
+    "pg": "^8.21.0"
+  }
+}
