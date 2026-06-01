@@ -48,7 +48,7 @@
       st.innerHTML = 'Covered — ' + fmt(surplus) + ' FTE cushion';
     } else if (surplus < 4.0) {
       st.className = 'status short';
-      st.innerHTML = '<strong>Moderately overstaffed — ' + fmt(surplus) + ' FTE above ratio</strong><br><span style="font-weight:400">Staffing is somewhat above what current enrollment requires. Send staff home whenever you\'re within ratio.</span>';
+      st.innerHTML = '<strong>Moderately overstaffed — ' + fmt(surplus) + ' FTE above ratio</strong><br><span style="font-weight:400">Staffing is somewhat above what current enrollment supports. Reminder: staff should be encouraged to take turns leaving early whenever within ratio.</span>';
     } else {
       st.className = 'status bad';
       st.innerHTML = '<strong>Significantly overstaffed — ' + fmt(surplus) + ' FTE above ratio</strong><br><span style="font-weight:400">Staffing is well above what current enrollment supports. Please prioritize enrollment and review next steps with the administrative team.</span>';
