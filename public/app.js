@@ -92,6 +92,19 @@
   }
   function signOut() { api('/api/logout', { method: 'POST' }).then(function () { renderLogin('You have signed out.'); }); }
 
+  function injectNav() {
+    if (document.getElementById('leadnav')) return;
+    var nav = document.createElement('div');
+    nav.id = 'leadnav';
+    nav.style.cssText = 'max-width:560px;margin:0 auto;padding:10px 16px 0;display:flex;gap:8px';
+    nav.innerHTML =
+      '<a href="/" style="flex:1;text-align:center;padding:9px;border-radius:10px;font-size:14px;font-weight:600;text-decoration:none;background:#1F3864;color:#fff">Enrollment &amp; Staffing</a>' +
+      '<a href="/exec.html" style="flex:1;text-align:center;padding:9px;border-radius:10px;font-size:14px;font-weight:600;text-decoration:none;background:#fff;color:#1F3864;border:1px solid #e3e7ee">Executive</a>' +
+      '<a href="/settings.html" style="flex:1;text-align:center;padding:9px;border-radius:10px;font-size:14px;font-weight:600;text-decoration:none;background:#fff;color:#1F3864;border:1px solid #e3e7ee">Settings</a>';
+    var wrap = document.querySelector('.wrap');
+    wrap.parentNode.insertBefore(nav, wrap);
+  }
+
   function start() {
     api('/api/me').then(function (res) {
       if (res.status === 401) return renderLogin();
@@ -103,7 +116,7 @@
       var sel = $('center'); sel.innerHTML = '';
       res.body.centers.forEach(function (c) { CENTERS[c.name] = c; var o = document.createElement('option'); o.value = c.name; o.textContent = c.label; sel.appendChild(o); });
       if (ME.role === 'director') { $('centerCard').classList.add('hide'); $('sub').textContent = (CENTERS[ME.center] ? CENTERS[ME.center].label : ME.center); }
-      else { $('centerCard').classList.remove('hide'); $('sub').textContent = 'Leadership view — choose a center'; }
+      else { $('centerCard').classList.remove('hide'); $('sub').textContent = 'Leadership view — choose a center'; injectNav(); }
       $('signout').classList.remove('hide');
       $('gate').classList.add('hide'); $('app').classList.remove('hide');
       var first = ME.role === 'director' ? ME.center : res.body.centers[0].name;
