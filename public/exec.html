@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Executive — Enrollment & Staffing</title>
+<meta name="theme-color" content="#1F3864" />
+<style>
+  :root{ --navy:#1F3864; --ink:#1c2330; --muted:#5b6472; --line:#e3e7ee; --bg:#f4f6f9; --card:#fff;
+         --green:#1d7a4d; --greenbg:#e7f4ec; --amber:#8a5a00; --amberbg:#fdf1da; --red:#a32d2d; --redbg:#fcebeb; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; background:var(--bg); color:var(--ink); }
+  header{ position:relative; background:var(--navy); color:#fff; padding:calc(16px + env(safe-area-inset-top,0)) 18px 16px; }
+  header h1{ font-size:18px; margin:0; font-weight:600; }
+  header p{ margin:4px 0 0; font-size:13px; opacity:.85; }
+  .nav{ max-width:760px; margin:0 auto; padding:10px 16px 0; display:flex; gap:8px; }
+  .nav a{ flex:1; text-align:center; padding:9px; border-radius:10px; font-size:14px; font-weight:600; text-decoration:none; background:#fff; color:var(--navy); border:1px solid var(--line); }
+  .nav a.active{ background:var(--navy); color:#fff; border-color:var(--navy); }
+  .wrap{ max-width:760px; margin:0 auto; padding:16px; }
+  .toggle{ display:flex; gap:8px; margin-bottom:14px; }
+  .toggle button{ flex:1; padding:10px; border-radius:10px; border:1px solid var(--line); background:#fff; color:var(--ink); font-size:14px; font-weight:600; }
+  .toggle button.on{ background:var(--navy); color:#fff; border-color:var(--navy); }
+  .card{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; margin-bottom:14px; }
+  .card.green{ border-left:6px solid var(--green); }
+  .card.yellow{ border-left:6px solid #d9a300; }
+  .card.red{ border-left:6px solid var(--red); }
+  .ctitle{ display:flex; justify-content:space-between; align-items:center; margin:0 0 12px; }
+  .ctitle h2{ font-size:16px; margin:0; font-weight:600; }
+  .pill{ font-size:12px; font-weight:600; padding:4px 10px; border-radius:999px; }
+  .pill.green{ background:var(--greenbg); color:var(--green); }
+  .pill.yellow{ background:var(--amberbg); color:var(--amber); }
+  .pill.red{ background:var(--redbg); color:var(--red); }
+  .rows{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .cell{ background:var(--bg); border-radius:10px; padding:10px 12px; }
+  .cell .k{ font-size:12px; color:var(--muted); }
+  .cell .v{ font-size:18px; font-weight:600; margin-top:2px; }
+  .cell .v.neg{ color:var(--red); }
+  .totals{ background:var(--navy); color:#fff; }
+  .totals .cell{ background:rgba(255,255,255,.12); }
+  .totals .cell .k{ color:rgba(255,255,255,.8); }
+  .totals .cell .v{ color:#fff; }
+  .notice{ background:#fff; border:1px solid var(--line); border-radius:14px; padding:22px; text-align:center; color:var(--muted); }
+  .hide{ display:none; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Executive Dashboard</h1>
+  <p id="sub">All centers</p>
+</header>
+<nav class="nav" id="nav">
+  <a href="/">Enrollment &amp; Staffing</a>
+  <a href="/exec.html" class="active">Executive</a>
+  <a href="/settings.html">Settings</a>
+</nav>
+<div class="wrap">
+  <div id="gate" class="notice">Loading…</div>
+  <div id="app" class="hide">
+    <div class="toggle">
+      <button id="m-sy" class="on">School Year</button>
+      <button id="m-su">Summer</button>
+    </div>
+    <div id="centers"></div>
+  </div>
+</div>
+<script src="/exec.js"></script>
+</body>
+</html>
