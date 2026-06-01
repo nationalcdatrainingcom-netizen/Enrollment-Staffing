@@ -39,8 +39,20 @@
     var admin = (num('dir_ft') + num('ad_ft')) + 0.5 * (num('dir_pt') + num('ad_pt'));
     $('req').textContent = fmt(req); $('have').textContent = fmt(have);
     var st = $('status');
-    if (have + 0.05 >= req) { st.className = 'status ok'; st.textContent = 'Covered — ' + fmt(have - req) + ' FTE cushion'; }
-    else { st.className = 'status short'; st.textContent = 'Short by ' + fmt(req - have) + ' FTE'; }
+    var surplus = have - req;
+    if (surplus < -0.05) {
+      st.className = 'status short';
+      st.innerHTML = 'Short by ' + fmt(-surplus) + ' FTE — below required ratio.';
+    } else if (surplus <= 1.0) {
+      st.className = 'status ok';
+      st.innerHTML = 'Covered — ' + fmt(surplus) + ' FTE cushion';
+    } else if (surplus < 4.0) {
+      st.className = 'status short';
+      st.innerHTML = '<strong>Moderately overstaffed — ' + fmt(surplus) + ' FTE over ratio</strong><br><span style="font-weight:400">Enrollment isn\'t covering this staffing. Send staff home whenever you\'re within ratio.</span>';
+    } else {
+      st.className = 'status bad';
+      st.innerHTML = '<strong>Seriously overstaffed — ' + fmt(surplus) + ' FTE over ratio</strong><br><span style="font-weight:400">Make enrollment a priority and talk with the admin team — this level isn\'t sustainable.</span>';
+    }
     $('uband').innerHTML = '<b>Under 3:</b> ' + u + ' kids → ' + ub.core + ' in room at once → need ~<b>' + fmt(ub.fte) + ' FTE</b> (' + ub.core + ' core + ' + ub.coverage + ' coverage)';
     $('oband').innerHTML = '<b>Over 3:</b> ' + o + ' kids → ' + ob.core + ' in room at once → need ~<b>' + fmt(ob.fte) + ' FTE</b> (' + ob.core + ' core + ' + ob.coverage + ' coverage)';
     $('split').innerHTML = 'Suggested mix: <b>' + (ub.core + ob.core) + '</b> leads/assistants (core) + <b>' + (ub.coverage + ob.coverage) + '</b> floaters/caregivers (coverage). Plus ' + fmt(admin) + ' admin out of ratio.';
