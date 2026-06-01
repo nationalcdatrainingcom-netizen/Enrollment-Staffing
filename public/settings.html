@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Settings — Enrollment & Staffing</title>
+<meta name="theme-color" content="#1F3864" />
+<style>
+  :root{ --navy:#1F3864; --ink:#1c2330; --muted:#5b6472; --line:#e3e7ee; --bg:#f4f6f9; --card:#fff; --field:#fbfcfe; --red:#a32d2d; --redbg:#fcebeb; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; background:var(--bg); color:var(--ink); }
+  header{ position:relative; background:var(--navy); color:#fff; padding:calc(16px + env(safe-area-inset-top,0)) 18px 16px; }
+  header h1{ font-size:18px; margin:0; font-weight:600; }
+  .nav{ max-width:760px; margin:0 auto; padding:10px 16px 0; display:flex; gap:8px; }
+  .nav a{ flex:1; text-align:center; padding:9px; border-radius:10px; font-size:14px; font-weight:600; text-decoration:none; background:#fff; color:var(--navy); border:1px solid var(--line); }
+  .nav a.active{ background:var(--navy); color:#fff; border-color:var(--navy); }
+  .wrap{ max-width:760px; margin:0 auto; padding:16px; }
+  .card{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; margin-bottom:14px; }
+  .card h2{ font-size:15px; margin:0 0 4px; font-weight:600; }
+  .card p.note{ font-size:12px; color:var(--muted); margin:0 0 12px; }
+  .confidential{ background:var(--redbg); color:var(--red); font-size:12px; font-weight:600; padding:6px 10px; border-radius:8px; display:inline-block; margin-bottom:10px; }
+  .row{ display:grid; align-items:center; gap:8px; margin-bottom:8px; }
+  .row label{ font-size:14px; color:var(--ink); }
+  input{ width:100%; font-size:16px; padding:9px 11px; border:1px solid var(--line); border-radius:9px; background:var(--field); color:var(--ink); }
+  .colhead{ font-size:12px; color:var(--muted); text-align:center; }
+  button.save{ width:100%; font-size:14px; font-weight:600; padding:11px; border:none; border-radius:10px; background:var(--navy); color:#fff; margin-top:6px; }
+  .sub{ font-weight:600; font-size:13px; color:var(--muted); margin:14px 0 8px; text-transform:uppercase; letter-spacing:.4px; }
+  .toast{ position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:#1c2330; color:#fff; padding:10px 16px; border-radius:999px; font-size:14px; opacity:0; transition:opacity .2s; pointer-events:none; }
+  .toast.show{ opacity:.96; }
+  .notice{ background:#fff; border:1px solid var(--line); border-radius:14px; padding:22px; text-align:center; color:var(--muted); }
+  .hide{ display:none; }
+</style>
+</head>
+<body>
+<header><h1>Settings</h1></header>
+<nav class="nav">
+  <a href="/">Enrollment &amp; Staffing</a>
+  <a href="/exec.html">Executive</a>
+  <a href="/settings.html" class="active">Settings</a>
+</nav>
+<div class="wrap">
+  <div id="gate" class="notice">Loading…</div>
+  <div id="app" class="hide">
+    <div class="card"><h2>Capacities &amp; goals</h2><p class="note">Total spaces per band and the monthly profit goal each center is measured against.</p><div id="centers"></div></div>
+    <div class="card"><h2>Tuition rates</h2><p class="note">Representative weekly rate per child, by band. Drives revenue.</p><div id="rates"></div></div>
+    <div class="card"><h2>Staff pay rates</h2><span class="confidential">Confidential — leadership only</span><p class="note">Hourly rate per role. Drives labor cost. Never shown to directors.</p><div id="staff"></div></div>
+    <div class="card"><h2>Fixed costs</h2><p class="note">Monthly cost per category, by center.</p><div id="fixed"></div></div>
+    <div class="card"><h2>General</h2><p class="note">Weeks per month (≈4.33), full-time hours/week, and in-room hours per shift used for required-staffing.</p><div id="general"></div></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script src="/settings.js"></script>
+</body>
+</html>
