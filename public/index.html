@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Enrollment &amp; Staffing</title>
+<link rel="manifest" href="/manifest.json" />
+<meta name="theme-color" content="#1F3864" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="Enrollment &amp; Staffing" />
+<link rel="apple-touch-icon" href="/icon-192.png" />
+<style>
+  :root{ --navy:#1F3864; --ink:#1c2330; --muted:#5b6472; --line:#e3e7ee; --bg:#f4f6f9;
+         --card:#ffffff; --green:#1d7a4d; --greenbg:#e7f4ec; --amber:#8a5a00; --amberbg:#fdf1da; --field:#fbfcfe; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+        background:var(--bg); color:var(--ink); -webkit-text-size-adjust:100%; }
+  header{ position:relative; background:var(--navy); color:#fff; padding:16px 18px calc(16px + env(safe-area-inset-bottom,0));
+           padding-top:calc(16px + env(safe-area-inset-top,0)); }
+  header h1{ font-size:18px; margin:0; font-weight:600; letter-spacing:.2px; }
+  header p{ margin:4px 0 0; font-size:13px; opacity:.85; }
+  .wrap{ max-width:560px; margin:0 auto; padding:16px; }
+  .card{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; margin-bottom:14px; }
+  .card h2{ font-size:15px; margin:0 0 12px; font-weight:600; }
+  label{ font-size:13px; color:var(--muted); display:block; margin-bottom:5px; }
+  input,select{ width:100%; font-size:16px; padding:10px 12px; border:1px solid var(--line);
+                border-radius:10px; background:var(--field); color:var(--ink); }
+  input:focus,select:focus{ outline:none; border-color:#9db4d8; box-shadow:0 0 0 3px rgba(31,56,100,.12); }
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .hint{ font-size:12px; color:var(--muted); margin:6px 0 0; }
+  .srow{ display:grid; grid-template-columns:1fr 70px 70px; gap:8px; align-items:center; margin-bottom:8px; }
+  .srow .rname{ font-size:14px; }
+  .scol{ font-size:12px; color:var(--muted); text-align:center; }
+  .metrics{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:4px 0 12px; }
+  .metric{ background:var(--bg); border-radius:10px; padding:12px; text-align:center; }
+  .metric .v{ font-size:24px; font-weight:600; }
+  .metric .k{ font-size:12px; color:var(--muted); }
+  .status{ text-align:center; font-size:14px; font-weight:600; padding:10px; border-radius:10px; margin-bottom:12px; }
+  .status.ok{ background:var(--greenbg); color:var(--green); }
+  .status.short{ background:var(--amberbg); color:var(--amber); }
+  .band{ font-size:13px; color:var(--muted); line-height:1.6; margin:6px 0 0; }
+  .band b{ color:var(--ink); font-weight:600; }
+  button.save{ width:100%; font-size:15px; font-weight:600; padding:12px; border:none; border-radius:10px;
+               background:var(--navy); color:#fff; margin-top:12px; }
+  button.save:active{ transform:scale(.99); }
+  .slider{ display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+  .slider label{ margin:0; flex:1; }
+  .slider input{ flex:1; }
+  .slider .out{ font-size:14px; font-weight:600; min-width:34px; text-align:right; }
+  .saved{ font-size:12px; color:var(--muted); margin-top:8px; text-align:center; }
+  .toast{ position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:#1c2330; color:#fff;
+          padding:10px 16px; border-radius:999px; font-size:14px; opacity:0; transition:opacity .2s; pointer-events:none; }
+  .toast.show{ opacity:.96; }
+  .notice{ background:#fff; border:1px solid var(--line); border-radius:14px; padding:20px; text-align:center; color:var(--muted); }
+  .hide{ display:none; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Enrollment &amp; Staffing</h1>
+  <p id="sub">Loading…</p>
+  <button id="signout" class="hide" style="position:absolute;top:calc(14px + env(safe-area-inset-top,0));right:16px;background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:13px;">Sign out</button>
+</header>
+<div class="wrap">
+  <div id="gate" class="notice">Connecting to the TCC Hub…</div>
+
+  <div id="app" class="hide">
+    <div class="card" id="centerCard">
+      <label for="center">Center</label>
+      <select id="center"></select>
+    </div>
+
+    <div class="card">
+      <h2>Children enrolled</h2>
+      <div class="grid2">
+        <div>
+          <label for="under3">Under 3</label>
+          <input id="under3" type="number" min="0" step="1" inputmode="numeric" />
+          <p class="hint" id="ucap"></p>
+        </div>
+        <div>
+          <label for="over3">Over 3</label>
+          <input id="over3" type="number" min="0" step="1" inputmode="numeric" />
+          <p class="hint" id="ocap"></p>
+        </div>
+      </div>
+      <p class="hint" id="util"></p>
+      <button class="save" id="saveEnroll">Save enrollment</button>
+      <p class="saved" id="enrollSaved"></p>
+    </div>
+
+    <div class="card">
+      <h2>Staff on hand</h2>
+      <div class="srow"><span></span><span class="scol">Full-time</span><span class="scol">Part-time</span></div>
+      <div class="srow"><span class="rname">Director</span><input id="dir_ft" type="number" min="0" step="1" inputmode="numeric"/><input id="dir_pt" type="number" min="0" step="1" inputmode="numeric"/></div>
+      <div class="srow"><span class="rname">Assistant director</span><input id="ad_ft" type="number" min="0" step="1" inputmode="numeric"/><input id="ad_pt" type="number" min="0" step="1" inputmode="numeric"/></div>
+      <div class="srow"><span class="rname">Lead / co-lead</span><input id="lead_ft" type="number" min="0" step="1" inputmode="numeric"/><input id="lead_pt" type="number" min="0" step="1" inputmode="numeric"/></div>
+      <div class="srow"><span class="rname">Associate / assistant</span><input id="assoc_ft" type="number" min="0" step="1" inputmode="numeric"/><input id="assoc_pt" type="number" min="0" step="1" inputmode="numeric"/></div>
+      <div class="srow"><span class="rname">Caregiver / floater</span><input id="care_ft" type="number" min="0" step="1" inputmode="numeric"/><input id="care_pt" type="number" min="0" step="1" inputmode="numeric"/></div>
+      <p class="hint">Director &amp; assistant director are not counted toward ratio. Part-time (under 30 hrs) counts as half.</p>
+      <button class="save" id="saveStaff">Save staffing</button>
+      <p class="saved" id="staffSaved"></p>
+    </div>
+
+    <div class="card">
+      <h2>Required staffing</h2>
+      <div class="slider">
+        <label for="phrs">In-room hours per shift</label>
+        <input id="phrs" type="range" min="6" max="8" step="0.25" value="7.5" />
+        <span class="out" id="phrsOut">7.5</span>
+      </div>
+      <div class="metrics">
+        <div class="metric"><div class="v" id="req">0</div><div class="k">required (FTE)</div></div>
+        <div class="metric"><div class="v" id="have">0</div><div class="k">you have (FTE)</div></div>
+      </div>
+      <div class="status" id="status"></div>
+      <p class="band" id="uband"></p>
+      <p class="band" id="oband"></p>
+      <p class="band" id="split" style="margin-top:8px"></p>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script src="/app.js"></script>
+</body>
+</html>
