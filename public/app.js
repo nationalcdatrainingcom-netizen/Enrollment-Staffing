@@ -48,10 +48,10 @@
       st.innerHTML = 'Covered — ' + fmt(surplus) + ' FTE cushion';
     } else if (surplus < 4.0) {
       st.className = 'status short';
-      st.innerHTML = '<strong>Moderately overstaffed — ' + fmt(surplus) + ' FTE over ratio</strong><br><span style="font-weight:400">Enrollment isn\'t covering this staffing. Send staff home whenever you\'re within ratio.</span>';
+      st.innerHTML = '<strong>Moderately overstaffed — ' + fmt(surplus) + ' FTE above ratio</strong><br><span style="font-weight:400">Staffing is somewhat above what current enrollment requires. Send staff home whenever you\'re within ratio.</span>';
     } else {
       st.className = 'status bad';
-      st.innerHTML = '<strong>Seriously overstaffed — ' + fmt(surplus) + ' FTE over ratio</strong><br><span style="font-weight:400">Make enrollment a priority and talk with the admin team — this level isn\'t sustainable.</span>';
+      st.innerHTML = '<strong>Significantly overstaffed — ' + fmt(surplus) + ' FTE above ratio</strong><br><span style="font-weight:400">Staffing is well above what current enrollment supports. Please prioritize enrollment and review next steps with the administrative team.</span>';
     }
     $('uband').innerHTML = '<b>Under 3:</b> ' + u + ' kids → ' + ub.core + ' in room at once → need ~<b>' + fmt(ub.fte) + ' FTE</b> (' + ub.core + ' core + ' + ub.coverage + ' coverage)';
     $('oband').innerHTML = '<b>Over 3:</b> ' + o + ' kids → ' + ob.core + ' in room at once → need ~<b>' + fmt(ob.fte) + ' FTE</b> (' + ob.core + ' core + ' + ob.coverage + ' coverage)';
