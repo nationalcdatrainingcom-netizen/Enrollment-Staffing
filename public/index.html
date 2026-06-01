@@ -13,7 +13,7 @@
 <link rel="apple-touch-icon" href="/icon-192.png" />
 <style>
   :root{ --navy:#1F3864; --ink:#1c2330; --muted:#5b6472; --line:#e3e7ee; --bg:#f4f6f9;
-         --card:#ffffff; --green:#1d7a4d; --greenbg:#e7f4ec; --amber:#8a5a00; --amberbg:#fdf1da; --field:#fbfcfe; }
+         --card:#ffffff; --green:#1d7a4d; --greenbg:#e7f4ec; --amber:#8a5a00; --amberbg:#fdf1da; --red:#a32d2d; --redbg:#fcebeb; --field:#fbfcfe; }
   *{ box-sizing:border-box; }
   body{ margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
         background:var(--bg); color:var(--ink); -webkit-text-size-adjust:100%; }
@@ -37,9 +37,10 @@
   .metric{ background:var(--bg); border-radius:10px; padding:12px; text-align:center; }
   .metric .v{ font-size:24px; font-weight:600; }
   .metric .k{ font-size:12px; color:var(--muted); }
-  .status{ text-align:center; font-size:14px; font-weight:600; padding:10px; border-radius:10px; margin-bottom:12px; }
+  .status{ text-align:center; font-size:14px; font-weight:600; padding:10px 12px; border-radius:10px; margin-bottom:12px; line-height:1.45; }
   .status.ok{ background:var(--greenbg); color:var(--green); }
   .status.short{ background:var(--amberbg); color:var(--amber); }
+  .status.bad{ background:var(--redbg); color:var(--red); }
   .band{ font-size:13px; color:var(--muted); line-height:1.6; margin:6px 0 0; }
   .band b{ color:var(--ink); font-weight:600; }
   button.save{ width:100%; font-size:15px; font-weight:600; padding:12px; border:none; border-radius:10px;
