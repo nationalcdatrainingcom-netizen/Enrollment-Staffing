@@ -112,37 +112,58 @@
       if (res.status !== 200 || !res.body) { card.classList.add('hide'); return; }
       var d = res.body;
       card.classList.remove('hide');
-      var lead = $('finLead'), fill = $('finFill'), st = $('finStatus'), note = $('finNote');
+      var lead = $('finLead'), fill = $('finFill'), st = $('finStatus'), note = $('finNote'), be = $('finBreakeven');
+      var label = (CENTERS[currentCenter] ? CENTERS[currentCenter].label : 'your center');
+
+      // No costs entered at all yet.
       if (!d.hasCostData) {
-        $('finLead').textContent = 'Cost information for this center hasn\u2019t been entered yet.';
-        fill.style.width = '0%'; st.className = 'status'; st.textContent = ''; st.style.display = 'none';
-        note.style.display = 'none';
+        lead.textContent = 'Cost information for this center hasn\u2019t been entered yet.';
+        fill.style.width = '0%'; be.style.display = 'none';
+        st.style.display = 'none'; note.style.display = 'none';
         return;
       }
-      note.style.display = '';
-      st.style.display = '';
+      // Costs exist but staffing hasn't been saved — labor is counted as $0, so the % is misleading.
+      if (!d.hasStaffing) {
+        lead.innerHTML = 'Save your staffing above to see an accurate picture.';
+        fill.style.width = '0%'; be.style.display = 'none';
+        st.style.display = ''; st.className = 'status short';
+        st.innerHTML = '<strong>Staffing not saved yet</strong><br><span style="font-weight:400">Until staffing is saved, this only counts overhead \u2014 not the cost of your team \u2014 so the percentage would look far too high. Tap <strong>Save staffing</strong> above.</span>';
+        note.style.display = '';
+        return;
+      }
+
+      note.style.display = ''; st.style.display = '';
       if (d.coverage == null) {
         lead.textContent = 'Enter your enrollment to see how it tracks against costs.';
-        fill.style.width = '0%'; st.className = 'status'; st.textContent = '';
+        fill.style.width = '0%'; be.style.display = 'none'; st.className = 'status'; st.textContent = '';
         return;
       }
+
       var pctCov = Math.round(d.coverage * 100);
       fill.style.width = Math.max(0, Math.min(100, pctCov)) + '%';
       fill.style.background = d.meetsBreakEven ? 'var(--green)' : (d.coverage >= 0.85 ? '#d9a300' : 'var(--red)');
-      lead.innerHTML = 'Your current enrollment covers about <strong>' + pctCov + '%</strong> of what it costs to run ' + (CENTERS[currentCenter] ? CENTERS[currentCenter].label : 'your center') + ' each month.';
+      lead.innerHTML = 'Your current enrollment covers about <strong>' + pctCov + '%</strong> of what it costs to run ' + label + ' each month.';
+
+      // Explicit break-even enrollment line, always shown.
+      be.style.display = '';
+      if (d.meetsBreakEven) {
+        be.innerHTML = '<strong>Break-even:</strong> reached \u2014 enrollment is covering full monthly costs.';
+      } else {
+        var s = d.seatsToBreakEven, z = (s === 1 ? 'more child' : 'more children');
+        be.innerHTML = '<strong>Break-even:</strong> about <strong>' + s + '</strong> ' + z + ' (paying, at your current mix) needed to cover full monthly costs.';
+      }
+
       if (d.meetsBreakEven) {
         st.className = 'status ok';
         if (d.hasGoal && !d.meetsGoal && d.seatsToGoal) {
           var sgz = d.seatsToGoal === 1 ? 'child' : 'children';
-          st.innerHTML = '<strong>Covering full costs</strong><br><span style="font-weight:400">About ' + d.seatsToGoal + ' more ' + sgz + ' at your current mix would reach your center\u2019s goal.</span>';
+          st.innerHTML = '<strong>Covering full costs</strong><br><span style="font-weight:400">About ' + d.seatsToGoal + ' more ' + sgz + ' would also reach your center\u2019s goal.</span>';
         } else {
           st.innerHTML = '<strong>Covering full costs</strong><br><span style="font-weight:400">Your enrollment is paying for everything it takes to run your center. Great work.</span>';
         }
       } else {
-        var seats = d.seatsToBreakEven;
-        var z = seats === 1 ? 'child' : 'children';
         st.className = (d.coverage >= 0.85) ? 'status short' : 'status bad';
-        st.innerHTML = '<strong>Not yet covering full costs</strong><br><span style="font-weight:400">About <strong>' + seats + '</strong> more ' + z + ' at your current mix would bring you to break-even. Trimming staff to ratio when you can also lowers what\u2019s needed.</span>';
+        st.innerHTML = '<strong>Not yet covering full costs</strong><br><span style="font-weight:400">Growing enrollment closes the gap; trimming staff to ratio when you can also lowers what\u2019s needed.</span>';
       }
     }).catch(function () { card.classList.add('hide'); });
   }
@@ -201,7 +222,7 @@
       var sel = $('center'); sel.innerHTML = '';
       res.body.centers.forEach(function (c) { CENTERS[c.name] = c; var o = document.createElement('option'); o.value = c.name; o.textContent = c.label; sel.appendChild(o); });
       if (ME.role === 'director') { $('centerCard').classList.add('hide'); $('sub').textContent = (CENTERS[ME.center] ? CENTERS[ME.center].label : ME.center); }
-      else { $('centerCard').classList.remove('hide'); $('sub').textContent = 'Leadership view — choose a center'; injectNav(); }
+      else { $('centerCard').classList.remove('hide'); $('sub').textContent = 'Executive view — choose a center'; injectNav(); }
       $('signout').classList.remove('hide');
       $('gate').classList.add('hide'); $('app').classList.remove('hide');
       var first = ME.role === 'director' ? ME.center : res.body.centers[0].name;
