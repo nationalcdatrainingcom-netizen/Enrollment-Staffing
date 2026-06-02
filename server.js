@@ -81,7 +81,7 @@ async function authenticate(req, res, next) {
 }
 function requireLeadership(req, res, next) {
   if (req.user.role === 'owner' || req.user.role === 'admin') return next();
-  return res.status(403).json({ error: 'forbidden', message: 'This area is for leadership only.' });
+  return res.status(403).json({ error: 'forbidden', message: 'This area is for executive administrators.' });
 }
 function resolveCenter(user, requested, centers) {
   if (user.role === 'director') {
@@ -150,7 +150,8 @@ app.get('/api/center-finance', authenticate, async (req, res) => {
     const stfU = enr.staff_under3 || 0, stfO = enr.staff_over3 || 0; // non-paying staff children
     const payingEnrolled = under3 + over3;
     const enrolled = payingEnrolled + stfU + stfO;                // everyone in the building
-    const revenue = (under3 * rateU + over3 * rateO) * weeks;     // staff children bring no revenue
+    const collRate = (c.collection_rate == null) ? 1 : c.collection_rate;
+    const revenue = (under3 * rateU + over3 * rateO) * weeks * collRate;     // staff children bring no revenue; collection rate reflects CDC/Tri-Share realization
 
     let labor = 0;
     ['dir', 'ad', 'lead', 'assoc', 'care'].forEach(r => {
@@ -162,13 +163,17 @@ app.get('/api/center-finance', authenticate, async (req, res) => {
     const totalCost = labor + fixed;            // includes overhead + current staffing
     const goal = c.goal_monthly || 0;
     const target = totalCost + goal;            // break-even that also meets the goal
+    const hasStaffing = labor > 0;
+    const hasFixed = fixed > 0;
 
     // Coverage = how much of full monthly cost the current tuition revenue covers.
     const coverage = totalCost > 0 ? revenue / totalCost : null;          // 1.0 = break-even
     const coverageWithGoal = target > 0 ? revenue / target : null;
 
-    // Translate the gap to children at the CURRENT enrollment mix (blended weekly tuition).
-    const avgWeekly = payingEnrolled > 0 ? (revenue / weeks) / payingEnrolled : (rateU + rateO) / 2;
+    // Translate the gap to children at the CURRENT enrollment mix (blended realized weekly tuition).
+    const avgWeekly = payingEnrolled > 0
+      ? (revenue / weeks) / payingEnrolled
+      : ((rateU + rateO) / 2) * collRate;
     const gapToBreakEven = Math.max(0, totalCost - revenue);
     const gapToGoal = Math.max(0, target - revenue);
     const seatsToBreakEven = avgWeekly > 0 ? Math.ceil(gapToBreakEven / (avgWeekly * weeks)) : null;
@@ -178,7 +183,7 @@ app.get('/api/center-finance', authenticate, async (req, res) => {
     res.json({
       center: c.name, label: c.label, mode,
       enrolled, capacity: c.cap_under3 + c.cap_over3,
-      hasCostData: totalCost > 0,
+      hasCostData: totalCost > 0, hasStaffing, hasFixed,
       coverage, coverageWithGoal,
       seatsToBreakEven, seatsToGoal,
       hasGoal: goal > 0,
@@ -224,7 +229,8 @@ async function computeCenter(c, mode, settings, staffRates) {
   const totU = payU + stfU, totO = payO + stfO;          // for ratio: every child in the room
   const enrollment = totU + totO;
   const capacity = c.cap_under3 + c.cap_over3;
-  const revenue = (payU * rateU + payO * rateO) * weeks;  // only paying children bring revenue
+  const collRate = (c.collection_rate == null) ? 1 : c.collection_rate;
+  const revenue = (payU * rateU + payO * rateO) * weeks * collRate;  // only paying children bring revenue; collection rate reflects realized $ vs published tuition
   const roles = ['dir', 'ad', 'lead', 'assoc', 'care'];
   let labor = 0;
   roles.forEach(r => {
@@ -280,8 +286,17 @@ app.get('/api/config', authenticate, requireLeadership, async (req, res) => {
 });
 
 app.post('/api/config/center', authenticate, requireLeadership, async (req, res) => {
-  try { await db.setCenter(req.body.name, toInt(req.body.cap_under3), toInt(req.body.cap_over3), toNum(req.body.goal_monthly)); res.json({ ok: true }); }
-  catch (e) { res.status(500).json({ error: 'server' }); }
+  try {
+    var collRate = null;
+    if (req.body.collection_rate_pct != null && req.body.collection_rate_pct !== '') {
+      var pct = parseFloat(req.body.collection_rate_pct);
+      if (isNaN(pct) || pct < 0) pct = 100;
+      if (pct > 200) pct = 200;            // allow up to 200%, guard against typos
+      collRate = pct / 100;
+    }
+    await db.setCenter(req.body.name, toInt(req.body.cap_under3), toInt(req.body.cap_over3), toNum(req.body.goal_monthly), collRate);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: 'server' }); }
 });
 app.post('/api/config/rate', authenticate, requireLeadership, async (req, res) => {
   try { await db.setRate(req.body.center, req.body.band, toNum(req.body.sy_weekly), toNum(req.body.summer_weekly)); res.json({ ok: true }); }
