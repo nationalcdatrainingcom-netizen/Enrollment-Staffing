@@ -41,6 +41,11 @@
   .status.ok{ background:var(--greenbg); color:var(--green); }
   .status.short{ background:var(--amberbg); color:var(--amber); }
   .status.bad{ background:var(--redbg); color:var(--red); }
+  .celebrate{ background:var(--greenbg); color:var(--green); border:1px solid #bfe3cd; border-radius:10px; padding:11px 12px; margin-top:10px; text-align:center; font-weight:700; font-size:14px; line-height:1.4; }
+  .meter{ position:relative; height:16px; background:#eef1f6; border-radius:999px; overflow:hidden; margin-top:10px; }
+  .meter-fill{ height:100%; width:0; border-radius:999px; background:var(--green); transition:width .3s ease; }
+  .meter-mark{ position:absolute; top:-3px; bottom:-3px; left:100%; width:0; }
+  .meter-labels{ display:flex; justify-content:space-between; font-size:11px; color:var(--muted); margin-top:4px; }
   .band{ font-size:13px; color:var(--muted); line-height:1.6; margin:6px 0 0; }
   .band b{ color:var(--ink); font-weight:600; }
   button.save{ width:100%; font-size:15px; font-weight:600; padding:12px; border:none; border-radius:10px;
@@ -88,6 +93,7 @@
         </div>
       </div>
       <p class="hint" id="util"></p>
+      <div id="celebrate" class="celebrate hide"></div>
       <button class="save" id="saveEnroll">Save enrollment</button>
       <p class="saved" id="enrollSaved"></p>
     </div>
@@ -120,6 +126,15 @@
       <p class="band" id="uband"></p>
       <p class="band" id="oband"></p>
       <p class="band" id="split" style="margin-top:8px"></p>
+    </div>
+
+    <div class="card" id="financeCard">
+      <h2>How enrollment is tracking against costs</h2>
+      <p class="hint" id="finLead">—</p>
+      <div class="meter"><div class="meter-fill" id="finFill"></div><div class="meter-mark" title="break-even"></div></div>
+      <div class="meter-labels"><span>0%</span><span>break-even</span></div>
+      <div class="status" id="finStatus" style="margin-top:12px"></div>
+      <p class="hint" id="finNote" style="margin-top:6px">This is a planning estimate based on your current enrollment and staffing, not your final books.</p>
     </div>
   </div>
 </div>
