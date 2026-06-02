@@ -44,15 +44,18 @@
   function compute() {
     var c = CENTERS[currentCenter]; if (!c) return;
     var u = num('under3'), o = num('over3'), P = parseFloat($('phrs').value) || 7.5;
+    var su = num('staff_under3'), so = num('staff_over3');
+    var totU = u + su, totO = o + so;                 // every child in the room counts for ratio/capacity
     $('phrsOut').textContent = String(P);
-    var uOpen = c.cap_under3 - u, oOpen = c.cap_over3 - o, tot = u + o, totCap = c.cap_under3 + c.cap_over3;
+    var uOpen = c.cap_under3 - totU, oOpen = c.cap_over3 - totO, tot = totU + totO, totCap = c.cap_under3 + c.cap_over3;
     $('ucap').textContent = 'cap ' + c.cap_under3 + (uOpen >= 0 ? ' · ' + uOpen + ' open' : ' · ' + (-uOpen) + ' over');
     $('ocap').textContent = 'cap ' + c.cap_over3 + (oOpen >= 0 ? ' · ' + oOpen + ' open' : ' · ' + (-oOpen) + ' over');
-    $('util').textContent = tot + ' of ' + totCap + ' seats filled · ' + (totCap ? Math.round(tot / totCap * 100) : 0) + '% utilization';
+    var staffTotal = su + so;
+    $('util').textContent = tot + ' of ' + totCap + ' seats filled · ' + (totCap ? Math.round(tot / totCap * 100) : 0) + '% utilization' + (staffTotal > 0 ? ' (incl. ' + staffTotal + ' staff/admin child' + (staffTotal === 1 ? '' : 'ren') + ')' : '');
     var cel = $('celebrate');
     if (totCap && (tot / totCap) > 0.95) { cel.classList.remove('hide'); cel.textContent = '🎉 Your program is filling seats — great job! Nearly every spot is taken.'; }
     else { cel.classList.add('hide'); cel.textContent = ''; }
-    var ub = bandRequired(u, RATIO.u, P), ob = bandRequired(o, RATIO.o, P);
+    var ub = bandRequired(totU, RATIO.u, P), ob = bandRequired(totO, RATIO.o, P);
     var req = ub.fte + ob.fte;
     var have = (num('lead_ft') + num('assoc_ft') + num('care_ft')) + 0.5 * (num('lead_pt') + num('assoc_pt') + num('care_pt'));
     var admin = (num('dir_ft') + num('ad_ft')) + 0.5 * (num('dir_pt') + num('ad_pt'));
@@ -78,8 +81,8 @@
       st.className = 'status bad';
       st.innerHTML = '<strong>Significantly overstaffed — ' + fmt(surplus) + ' FTE above ratio</strong><br><span style="font-weight:400">Staffing is well above what current enrollment supports. Please prioritize enrollment and review next steps with the administrative team.</span>';
     }
-    $('uband').innerHTML = '<b>Under 3:</b> ' + u + ' kids → ' + ub.core + ' in room at once → need ~<b>' + fmt(ub.fte) + ' FTE</b> (' + ub.core + ' core + ' + ub.coverage + ' coverage)';
-    $('oband').innerHTML = '<b>Over 3:</b> ' + o + ' kids → ' + ob.core + ' in room at once → need ~<b>' + fmt(ob.fte) + ' FTE</b> (' + ob.core + ' core + ' + ob.coverage + ' coverage)';
+    $('uband').innerHTML = '<b>Under 3:</b> ' + totU + ' kids → ' + ub.core + ' in room at once → need ~<b>' + fmt(ub.fte) + ' FTE</b> (' + ub.core + ' core + ' + ub.coverage + ' coverage)';
+    $('oband').innerHTML = '<b>Over 3:</b> ' + totO + ' kids → ' + ob.core + ' in room at once → need ~<b>' + fmt(ob.fte) + ' FTE</b> (' + ob.core + ' core + ' + ob.coverage + ' coverage)';
     $('split').innerHTML = 'Suggested mix: <b>' + (ub.core + ob.core) + '</b> leads/assistants (core) + <b>' + (ub.coverage + ob.coverage) + '</b> floaters/caregivers (coverage). Plus ' + fmt(admin) + ' admin out of ratio.';
   }
 
@@ -89,6 +92,7 @@
   }
   function fillEnrollment(e) {
     $('under3').value = e ? (e.under3 || 0) : 0; $('over3').value = e ? (e.over3 || 0) : 0;
+    $('staff_under3').value = e ? (e.staff_under3 || 0) : 0; $('staff_over3').value = e ? (e.staff_over3 || 0) : 0;
     $('enrollSaved').textContent = e && e.created_at ? ('Last saved ' + when(e.created_at) + (e.entered_by ? ' by ' + e.entered_by : '')) : 'Not yet saved.';
   }
 
@@ -206,14 +210,14 @@
   }
 
   document.addEventListener('input', function (e) {
-    if (['under3', 'over3', 'phrs', 'dir_ft', 'dir_pt', 'ad_ft', 'ad_pt', 'lead_ft', 'lead_pt', 'assoc_ft', 'assoc_pt', 'care_ft', 'care_pt'].indexOf(e.target.id) > -1) compute();
+    if (['under3', 'over3', 'staff_under3', 'staff_over3', 'phrs', 'dir_ft', 'dir_pt', 'ad_ft', 'ad_pt', 'lead_ft', 'lead_pt', 'assoc_ft', 'assoc_pt', 'care_ft', 'care_pt'].indexOf(e.target.id) > -1) compute();
   });
 
   document.addEventListener('DOMContentLoaded', function () {
     $('center').addEventListener('change', function () { loadState(this.value); });
     $('signout').addEventListener('click', signOut);
     $('saveEnroll').addEventListener('click', function () {
-      api('/api/enrollment', { method: 'POST', body: JSON.stringify({ center: currentCenter, under3: num('under3'), over3: num('over3') }) })
+      api('/api/enrollment', { method: 'POST', body: JSON.stringify({ center: currentCenter, under3: num('under3'), over3: num('over3'), staff_under3: num('staff_under3'), staff_over3: num('staff_over3') }) })
         .then(function (res) { if (res.status !== 200) return toast(res.body.message || 'Save failed.'); fillEnrollment(res.body.enrollment); toast('Enrollment saved'); compute(); loadFinance(); });
     });
     $('saveStaff').addEventListener('click', function () {
