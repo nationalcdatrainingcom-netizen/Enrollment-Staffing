@@ -23,19 +23,22 @@
   function val(id) { return $(id).value; }
 
   function renderCenters() {
-    var h = '<div class="row" style="grid-template-columns:1fr 70px 70px 90px"><span></span><span class="colhead">Under 3</span><span class="colhead">Over 3</span><span class="colhead">Goal $</span></div>';
+    var h = '<div class="row" style="grid-template-columns:1fr 60px 60px 84px 70px"><span></span><span class="colhead">Under 3</span><span class="colhead">Over 3</span><span class="colhead">Goal $</span><span class="colhead">Collect %</span></div>';
     CFG.centers.forEach(function (c, i) {
-      h += '<div class="row" style="grid-template-columns:1fr 70px 70px 90px">' +
+      var collPct = Math.round(((c.collection_rate == null ? 1 : c.collection_rate)) * 100);
+      h += '<div class="row" style="grid-template-columns:1fr 60px 60px 84px 70px">' +
         '<label>' + c.label + '</label>' +
         '<input id="c-u-' + i + '" type="number" min="0" value="' + c.cap_under3 + '">' +
         '<input id="c-o-' + i + '" type="number" min="0" value="' + c.cap_over3 + '">' +
-        '<input id="c-g-' + i + '" type="number" min="0" value="' + c.goal_monthly + '"></div>';
+        '<input id="c-g-' + i + '" type="number" min="0" value="' + c.goal_monthly + '">' +
+        '<input id="c-c-' + i + '" type="number" min="0" max="200" value="' + collPct + '"></div>';
     });
-    h += '<button class="save" id="save-centers">Save capacities &amp; goals</button>';
+    h += '<p class="note">Collect % is the share of published tuition the center actually collects after CDC and Tri-Share (100% = everyone pays full rate). It scales revenue in the coverage and break-even figures.</p>';
+    h += '<button class="save" id="save-centers">Save capacities, goals &amp; collection rate</button>';
     $('centers').innerHTML = h;
     $('save-centers').addEventListener('click', function () {
-      CFG.centers.forEach(function (c, i) { post('/api/config/center', { name: c.name, cap_under3: val('c-u-' + i), cap_over3: val('c-o-' + i), goal_monthly: val('c-g-' + i) }); });
-      toast('Capacities & goals saved');
+      CFG.centers.forEach(function (c, i) { post('/api/config/center', { name: c.name, cap_under3: val('c-u-' + i), cap_over3: val('c-o-' + i), goal_monthly: val('c-g-' + i), collection_rate_pct: val('c-c-' + i) }); });
+      toast('Centers saved');
     });
   }
 
@@ -127,7 +130,7 @@
   document.addEventListener('DOMContentLoaded', function () {
     carryTokenOnNav();
     api('/api/config').then(function (res) {
-      if (res.status === 403) { $('gate').innerHTML = 'This area is for leadership only.<br><a href="/">Back</a>'; return; }
+      if (res.status === 403) { $('gate').innerHTML = 'This area is for executive administrators.<br><a href="/">Back</a>'; return; }
       if (res.status === 401) { window.location.href = '/'; return; }
       if (res.status !== 200) { $('gate').textContent = 'Could not load.'; return; }
       CFG = res.body; $('gate').classList.add('hide'); $('app').classList.remove('hide');
