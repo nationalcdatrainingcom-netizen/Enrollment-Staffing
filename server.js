@@ -122,6 +122,70 @@ app.get('/api/state', authenticate, async (req, res) => {
   } catch (e) { res.status(500).json({ error: 'server' }); }
 });
 
+// Director-safe financial snapshot for ONE center the user is allowed to see.
+// Returns ONLY coverage % and break-even seats — never labor $, overhead $, pay, or other centers.
+app.get('/api/center-finance', authenticate, async (req, res) => {
+  try {
+    const centers = await db.listCenters();
+    let center;
+    try { center = resolveCenter(req.user, req.query.center, centers); }
+    catch (e) { return res.status(403).json({ error: 'forbidden', message: 'You can only view your own center.' }); }
+    if (!center) return res.status(400).json({ error: 'no_center' });
+    const c = await db.getCenter(center);
+    if (!c) return res.status(404).json({ error: 'unknown_center' });
+    const mode = req.query.mode === 'summer' ? 'summer' : 'school_year';
+    const settings = await db.getSettings();
+    const staffRates = await db.listStaffRates();
+    const weeks = parseFloat(settings.weeks_per_month) || (52 / 12);
+    const ftHours = parseFloat(settings.full_time_hours) || 40;
+
+    const enr = await db.latestEnrollment(center) || { under3: 0, over3: 0 };
+    const stf = await db.latestStaffing(center) || {};
+    const rU = await db.getRate(center, 'Under 3');
+    const rO = await db.getRate(center, 'Over 3');
+    const rateU = mode === 'summer' ? rU.summer_weekly : rU.sy_weekly;
+    const rateO = mode === 'summer' ? rO.summer_weekly : rO.sy_weekly;
+
+    const under3 = enr.under3 || 0, over3 = enr.over3 || 0;
+    const enrolled = under3 + over3;
+    const revenue = (under3 * rateU + over3 * rateO) * weeks;
+
+    let labor = 0;
+    ['dir', 'ad', 'lead', 'assoc', 'care'].forEach(r => {
+      const fte = (stf[r + '_ft'] || 0) + 0.5 * (stf[r + '_pt'] || 0);
+      const hr = staffRates[r] ? staffRates[r].hourly : 0;
+      labor += fte * ftHours * hr * weeks;
+    });
+    const fixed = await db.fixedTotal(center);
+    const totalCost = labor + fixed;            // includes overhead + current staffing
+    const goal = c.goal_monthly || 0;
+    const target = totalCost + goal;            // break-even that also meets the goal
+
+    // Coverage = how much of full monthly cost the current tuition revenue covers.
+    const coverage = totalCost > 0 ? revenue / totalCost : null;          // 1.0 = break-even
+    const coverageWithGoal = target > 0 ? revenue / target : null;
+
+    // Translate the gap to children at the CURRENT enrollment mix (blended weekly tuition).
+    const avgWeekly = enrolled > 0 ? (revenue / weeks) / enrolled : (rateU + rateO) / 2;
+    const gapToBreakEven = Math.max(0, totalCost - revenue);
+    const gapToGoal = Math.max(0, target - revenue);
+    const seatsToBreakEven = avgWeekly > 0 ? Math.ceil(gapToBreakEven / (avgWeekly * weeks)) : null;
+    const seatsToGoal = avgWeekly > 0 ? Math.ceil(gapToGoal / (avgWeekly * weeks)) : null;
+
+    // NOTE: deliberately NO labor/fixed/revenue dollars in the response.
+    res.json({
+      center: c.name, label: c.label, mode,
+      enrolled, capacity: c.cap_under3 + c.cap_over3,
+      hasCostData: totalCost > 0,
+      coverage, coverageWithGoal,
+      seatsToBreakEven, seatsToGoal,
+      hasGoal: goal > 0,
+      meetsBreakEven: coverage != null ? revenue >= totalCost : false,
+      meetsGoal: target > 0 ? revenue >= target : false
+    });
+  } catch (e) { res.status(500).json({ error: 'server' }); }
+});
+
 app.post('/api/enrollment', authenticate, async (req, res) => {
   try {
     const centers = await db.listCenters();
