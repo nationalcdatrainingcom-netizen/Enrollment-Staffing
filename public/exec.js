@@ -26,7 +26,7 @@
     return '<div class="card ' + r.status + '">' +
       '<div class="ctitle"><h2>' + r.label + '</h2>' + pill + '</div>' +
       '<div class="rows">' +
-        cell('Enrollment', r.enrollment + ' / ' + r.capacity) +
+        cell('Enrollment', r.enrollment + ' / ' + r.capacity + (r.staffChildren > 0 ? ' <span style="font-size:11px;color:var(--muted);font-weight:400">(' + r.payingEnrollment + ' paying + ' + r.staffChildren + ' staff)</span>' : '')) +
         cell('Utilization', pct(r.utilization)) +
         cell('Required FTE', fte(r.requiredFte)) +
         cell('Actual FTE', fte(r.actualFte)) +
