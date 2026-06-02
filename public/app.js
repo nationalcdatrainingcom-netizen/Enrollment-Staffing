@@ -3,6 +3,19 @@
   var RATIO = { u: 4, o: 10 }, FULL = 10, HALF = 1;
   var ME = null, CENTERS = {}, currentCenter = null, inRoomDefault = 7.5;
 
+  // When opened from the TCC Hub (embedded iframe), the Hub passes ?hub_token=<JWT>.
+  // Cross-domain iframes can't keep cookies, so we hold the token and send it as a
+  // Bearer header on every request instead of relying on the login cookie.
+  var HUB_TOKEN = null;
+  (function () {
+    try {
+      var qs = new URLSearchParams(window.location.search);
+      var t = qs.get('hub_token') || qs.get('token');
+      if (t) { HUB_TOKEN = t; try { sessionStorage.setItem('chs_hub_token', t); } catch (e) {} }
+      else { try { HUB_TOKEN = sessionStorage.getItem('chs_hub_token'); } catch (e) {} }
+    } catch (e) {}
+  })();
+
   function $(id) { return document.getElementById(id); }
   function num(id) { var v = parseInt($(id).value, 10); return isNaN(v) || v < 0 ? 0 : v; }
   function fmt(n) { return (Math.round(n * 10) / 10).toFixed(1); }
@@ -13,7 +26,10 @@
     catch (e) { return ''; }
   }
   function api(path, opts) {
-    return fetch(path, Object.assign({ headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin' }, opts || {}))
+    opts = opts || {};
+    var headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {});
+    if (HUB_TOKEN) headers['Authorization'] = 'Bearer ' + HUB_TOKEN;
+    return fetch(path, Object.assign({ credentials: 'same-origin' }, opts, { headers: headers }))
       .then(function (r) { return r.json().then(function (j) { return { status: r.status, body: j }; }); });
   }
 
@@ -33,6 +49,9 @@
     $('ucap').textContent = 'cap ' + c.cap_under3 + (uOpen >= 0 ? ' · ' + uOpen + ' open' : ' · ' + (-uOpen) + ' over');
     $('ocap').textContent = 'cap ' + c.cap_over3 + (oOpen >= 0 ? ' · ' + oOpen + ' open' : ' · ' + (-oOpen) + ' over');
     $('util').textContent = tot + ' of ' + totCap + ' seats filled · ' + (totCap ? Math.round(tot / totCap * 100) : 0) + '% utilization';
+    var cel = $('celebrate');
+    if (totCap && (tot / totCap) > 0.95) { cel.classList.remove('hide'); cel.textContent = '🎉 Your program is filling seats — great job! Nearly every spot is taken.'; }
+    else { cel.classList.add('hide'); cel.textContent = ''; }
     var ub = bandRequired(u, RATIO.u, P), ob = bandRequired(o, RATIO.o, P);
     var req = ub.fte + ob.fte;
     var have = (num('lead_ft') + num('assoc_ft') + num('care_ft')) + 0.5 * (num('lead_pt') + num('assoc_pt') + num('care_pt'));
@@ -41,8 +60,14 @@
     var st = $('status');
     var surplus = have - req;
     if (surplus < -0.05) {
-      st.className = 'status short';
-      st.innerHTML = 'Short by ' + fmt(-surplus) + ' FTE — below required ratio.';
+      st.className = 'status ok';
+      var room = Math.floor(-surplus);
+      if (room >= 1) {
+        var word = room === 1 ? 'staff member' : 'staff members';
+        st.innerHTML = '<strong>Room to grow</strong><br><span style="font-weight:400">Your current enrollment would support up to ' + room + ' more teaching ' + word + ' if needed. Keep an eye on your ratios.</span>';
+      } else {
+        st.innerHTML = '<strong>Right-sized for current enrollment</strong><br><span style="font-weight:400">Staffing matches your enrollment. Keep an eye on your ratios.</span>';
+      }
     } else if (surplus <= 1.0) {
       st.className = 'status ok';
       st.innerHTML = 'Covered — ' + fmt(surplus) + ' FTE cushion';
@@ -106,13 +131,14 @@
 
   function injectNav() {
     if (document.getElementById('leadnav')) return;
+    var q = HUB_TOKEN ? ('?hub_token=' + encodeURIComponent(HUB_TOKEN)) : '';
     var nav = document.createElement('div');
     nav.id = 'leadnav';
     nav.style.cssText = 'max-width:560px;margin:0 auto;padding:10px 16px 0;display:flex;gap:8px';
     nav.innerHTML =
-      '<a href="/" style="flex:1;text-align:center;padding:9px;border-radius:10px;font-size:14px;font-weight:600;text-decoration:none;background:#1F3864;color:#fff">Enrollment &amp; Staffing</a>' +
-      '<a href="/exec.html" style="flex:1;text-align:center;padding:9px;border-radius:10px;font-size:14px;font-weight:600;text-decoration:none;background:#fff;color:#1F3864;border:1px solid #e3e7ee">Executive</a>' +
-      '<a href="/settings.html" style="flex:1;text-align:center;padding:9px;border-radius:10px;font-size:14px;font-weight:600;text-decoration:none;background:#fff;color:#1F3864;border:1px solid #e3e7ee">Settings</a>';
+      '<a href="/' + q + '" style="flex:1;text-align:center;padding:9px;border-radius:10px;font-size:14px;font-weight:600;text-decoration:none;background:#1F3864;color:#fff">Enrollment &amp; Staffing</a>' +
+      '<a href="/exec.html' + q + '" style="flex:1;text-align:center;padding:9px;border-radius:10px;font-size:14px;font-weight:600;text-decoration:none;background:#fff;color:#1F3864;border:1px solid #e3e7ee">Executive</a>' +
+      '<a href="/settings.html' + q + '" style="flex:1;text-align:center;padding:9px;border-radius:10px;font-size:14px;font-weight:600;text-decoration:none;background:#fff;color:#1F3864;border:1px solid #e3e7ee">Settings</a>';
     var wrap = document.querySelector('.wrap');
     wrap.parentNode.insertBefore(nav, wrap);
   }
