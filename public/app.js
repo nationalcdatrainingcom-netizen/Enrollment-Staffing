@@ -97,7 +97,50 @@
       if (res.status !== 200) { toast(res.body.message || 'Could not load center.'); return; }
       currentCenter = res.body.center.name; CENTERS[currentCenter] = res.body.center;
       fillEnrollment(res.body.enrollment); fillStaffing(res.body.staffing); compute();
+      loadFinance();
     });
+  }
+
+  function loadFinance() {
+    if (!currentCenter) return;
+    var card = $('financeCard');
+    api('/api/center-finance?center=' + encodeURIComponent(currentCenter)).then(function (res) {
+      if (res.status !== 200 || !res.body) { card.classList.add('hide'); return; }
+      var d = res.body;
+      card.classList.remove('hide');
+      var lead = $('finLead'), fill = $('finFill'), st = $('finStatus'), note = $('finNote');
+      if (!d.hasCostData) {
+        $('finLead').textContent = 'Cost information for this center hasn\u2019t been entered yet.';
+        fill.style.width = '0%'; st.className = 'status'; st.textContent = ''; st.style.display = 'none';
+        note.style.display = 'none';
+        return;
+      }
+      note.style.display = '';
+      st.style.display = '';
+      if (d.coverage == null) {
+        lead.textContent = 'Enter your enrollment to see how it tracks against costs.';
+        fill.style.width = '0%'; st.className = 'status'; st.textContent = '';
+        return;
+      }
+      var pctCov = Math.round(d.coverage * 100);
+      fill.style.width = Math.max(0, Math.min(100, pctCov)) + '%';
+      fill.style.background = d.meetsBreakEven ? 'var(--green)' : (d.coverage >= 0.85 ? '#d9a300' : 'var(--red)');
+      lead.innerHTML = 'Your current enrollment covers about <strong>' + pctCov + '%</strong> of what it costs to run ' + (CENTERS[currentCenter] ? CENTERS[currentCenter].label : 'your center') + ' each month.';
+      if (d.meetsBreakEven) {
+        st.className = 'status ok';
+        if (d.hasGoal && !d.meetsGoal && d.seatsToGoal) {
+          var sgz = d.seatsToGoal === 1 ? 'child' : 'children';
+          st.innerHTML = '<strong>Covering full costs</strong><br><span style="font-weight:400">About ' + d.seatsToGoal + ' more ' + sgz + ' at your current mix would reach your center\u2019s goal.</span>';
+        } else {
+          st.innerHTML = '<strong>Covering full costs</strong><br><span style="font-weight:400">Your enrollment is paying for everything it takes to run your center. Great work.</span>';
+        }
+      } else {
+        var seats = d.seatsToBreakEven;
+        var z = seats === 1 ? 'child' : 'children';
+        st.className = (d.coverage >= 0.85) ? 'status short' : 'status bad';
+        st.innerHTML = '<strong>Not yet covering full costs</strong><br><span style="font-weight:400">About <strong>' + seats + '</strong> more ' + z + ' at your current mix would bring you to break-even. Trimming staff to ratio when you can also lowers what\u2019s needed.</span>';
+      }
+    }).catch(function () { card.classList.add('hide'); });
   }
 
   function renderLogin(msg) {
@@ -171,13 +214,13 @@
     $('signout').addEventListener('click', signOut);
     $('saveEnroll').addEventListener('click', function () {
       api('/api/enrollment', { method: 'POST', body: JSON.stringify({ center: currentCenter, under3: num('under3'), over3: num('over3') }) })
-        .then(function (res) { if (res.status !== 200) return toast(res.body.message || 'Save failed.'); fillEnrollment(res.body.enrollment); toast('Enrollment saved'); compute(); });
+        .then(function (res) { if (res.status !== 200) return toast(res.body.message || 'Save failed.'); fillEnrollment(res.body.enrollment); toast('Enrollment saved'); compute(); loadFinance(); });
     });
     $('saveStaff').addEventListener('click', function () {
       var body = { center: currentCenter };
       ['dir_ft', 'dir_pt', 'ad_ft', 'ad_pt', 'lead_ft', 'lead_pt', 'assoc_ft', 'assoc_pt', 'care_ft', 'care_pt'].forEach(function (id) { body[id] = num(id); });
       api('/api/staffing', { method: 'POST', body: JSON.stringify(body) })
-        .then(function (res) { if (res.status !== 200) return toast(res.body.message || 'Save failed.'); fillStaffing(res.body.staffing); toast('Staffing saved'); compute(); });
+        .then(function (res) { if (res.status !== 200) return toast(res.body.message || 'Save failed.'); fillStaffing(res.body.staffing); toast('Staffing saved'); compute(); loadFinance(); });
     });
     start();
   });
