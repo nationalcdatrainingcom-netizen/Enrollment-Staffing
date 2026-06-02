@@ -51,7 +51,7 @@
 
   function load() {
     api('/api/exec?mode=' + mode).then(function (res) {
-      if (res.status === 403) { $('gate').classList.remove('hide'); $('app').classList.add('hide'); $('gate').innerHTML = 'This area is for leadership only.<br><a href="/">Back to Enrollment &amp; Staffing</a>'; return; }
+      if (res.status === 403) { $('gate').classList.remove('hide'); $('app').classList.add('hide'); $('gate').innerHTML = 'This area is for executive administrators.<br><a href="/">Back to Enrollment &amp; Staffing</a>'; return; }
       if (res.status === 401) { window.location.href = '/'; return; }
       if (res.status !== 200) { $('gate').textContent = 'Could not load.'; return; }
       $('gate').classList.add('hide'); $('app').classList.remove('hide');
