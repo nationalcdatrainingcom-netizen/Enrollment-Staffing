@@ -139,16 +139,18 @@ app.get('/api/center-finance', authenticate, async (req, res) => {
     const weeks = parseFloat(settings.weeks_per_month) || (52 / 12);
     const ftHours = parseFloat(settings.full_time_hours) || 40;
 
-    const enr = await db.latestEnrollment(center) || { under3: 0, over3: 0 };
+    const enr = await db.latestEnrollment(center) || { under3: 0, over3: 0, staff_under3: 0, staff_over3: 0 };
     const stf = await db.latestStaffing(center) || {};
     const rU = await db.getRate(center, 'Under 3');
     const rO = await db.getRate(center, 'Over 3');
     const rateU = mode === 'summer' ? rU.summer_weekly : rU.sy_weekly;
     const rateO = mode === 'summer' ? rO.summer_weekly : rO.sy_weekly;
 
-    const under3 = enr.under3 || 0, over3 = enr.over3 || 0;
-    const enrolled = under3 + over3;
-    const revenue = (under3 * rateU + over3 * rateO) * weeks;
+    const under3 = enr.under3 || 0, over3 = enr.over3 || 0;       // paying
+    const stfU = enr.staff_under3 || 0, stfO = enr.staff_over3 || 0; // non-paying staff children
+    const payingEnrolled = under3 + over3;
+    const enrolled = payingEnrolled + stfU + stfO;                // everyone in the building
+    const revenue = (under3 * rateU + over3 * rateO) * weeks;     // staff children bring no revenue
 
     let labor = 0;
     ['dir', 'ad', 'lead', 'assoc', 'care'].forEach(r => {
@@ -166,7 +168,7 @@ app.get('/api/center-finance', authenticate, async (req, res) => {
     const coverageWithGoal = target > 0 ? revenue / target : null;
 
     // Translate the gap to children at the CURRENT enrollment mix (blended weekly tuition).
-    const avgWeekly = enrolled > 0 ? (revenue / weeks) / enrolled : (rateU + rateO) / 2;
+    const avgWeekly = payingEnrolled > 0 ? (revenue / weeks) / payingEnrolled : (rateU + rateO) / 2;
     const gapToBreakEven = Math.max(0, totalCost - revenue);
     const gapToGoal = Math.max(0, target - revenue);
     const seatsToBreakEven = avgWeekly > 0 ? Math.ceil(gapToBreakEven / (avgWeekly * weeks)) : null;
@@ -191,7 +193,7 @@ app.post('/api/enrollment', authenticate, async (req, res) => {
     const centers = await db.listCenters();
     let center; try { center = resolveCenter(req.user, req.body.center, centers); } catch (e) { return res.status(403).json({ error: 'forbidden', message: 'You can only edit your own center.' }); }
     if (!center) return res.status(400).json({ error: 'no_center' });
-    const row = await db.insertEnrollment(center, toInt(req.body.under3), toInt(req.body.over3), req.user.username);
+    const row = await db.insertEnrollment(center, toInt(req.body.under3), toInt(req.body.over3), toInt(req.body.staff_under3), toInt(req.body.staff_over3), req.user.username);
     res.json({ ok: true, enrollment: row });
   } catch (e) { res.status(500).json({ error: 'server' }); }
 });
@@ -212,14 +214,17 @@ async function computeCenter(c, mode, settings, staffRates) {
   const weeks = parseFloat(settings.weeks_per_month) || (52 / 12);
   const ftHours = parseFloat(settings.full_time_hours) || 40;
   const inRoom = parseFloat(settings.in_room_hours) || 7.5;
-  const enr = await db.latestEnrollment(c.name) || { under3: 0, over3: 0 };
+  const enr = await db.latestEnrollment(c.name) || { under3: 0, over3: 0, staff_under3: 0, staff_over3: 0 };
   const stf = await db.latestStaffing(c.name) || {};
   const rU = await db.getRate(c.name, 'Under 3'); const rO = await db.getRate(c.name, 'Over 3');
   const rateU = mode === 'summer' ? rU.summer_weekly : rU.sy_weekly;
   const rateO = mode === 'summer' ? rO.summer_weekly : rO.sy_weekly;
-  const enrollment = (enr.under3 || 0) + (enr.over3 || 0);
+  const payU = enr.under3 || 0, payO = enr.over3 || 0;
+  const stfU = enr.staff_under3 || 0, stfO = enr.staff_over3 || 0;
+  const totU = payU + stfU, totO = payO + stfO;          // for ratio: every child in the room
+  const enrollment = totU + totO;
   const capacity = c.cap_under3 + c.cap_over3;
-  const revenue = ((enr.under3 || 0) * rateU + (enr.over3 || 0) * rateO) * weeks;
+  const revenue = (payU * rateU + payO * rateO) * weeks;  // only paying children bring revenue
   const roles = ['dir', 'ad', 'lead', 'assoc', 'care'];
   let labor = 0;
   roles.forEach(r => {
@@ -229,7 +234,7 @@ async function computeCenter(c, mode, settings, staffRates) {
   });
   const fixed = await db.fixedTotal(c.name);
   const profit = revenue - labor - fixed;
-  const requiredFte = bandRequired(enr.under3 || 0, 4, inRoom) + bandRequired(enr.over3 || 0, 10, inRoom);
+  const requiredFte = bandRequired(totU, 4, inRoom) + bandRequired(totO, 10, inRoom);
   const actualFte = (stf.lead_ft || 0) + (stf.assoc_ft || 0) + (stf.care_ft || 0) + 0.5 * ((stf.lead_pt || 0) + (stf.assoc_pt || 0) + (stf.care_pt || 0));
   const goal = c.goal_monthly || 0;
   const tol = goal === 0 ? 500 : 0.05 * Math.abs(goal);
@@ -237,6 +242,7 @@ async function computeCenter(c, mode, settings, staffRates) {
   if (profit >= goal) status = 'green'; else if (profit >= goal - tol) status = 'yellow';
   return {
     name: c.name, label: c.label, enrollment, capacity,
+    payingEnrollment: payU + payO, staffChildren: stfU + stfO,
     utilization: capacity ? enrollment / capacity : 0,
     requiredFte, actualFte, revenue, labor, fixed, expenses: labor + fixed,
     profit, goal, varToGoal: profit - goal, status
