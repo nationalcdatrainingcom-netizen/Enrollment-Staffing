@@ -1,10 +1,24 @@
 'use strict';
 (function () {
   var CFG = null;
+  var HUB_TOKEN = null;
+  (function () {
+    try {
+      var qs = new URLSearchParams(window.location.search);
+      var t = qs.get('hub_token') || qs.get('token');
+      if (t) { HUB_TOKEN = t; try { sessionStorage.setItem('chs_hub_token', t); } catch (e) {} }
+      else { try { HUB_TOKEN = sessionStorage.getItem('chs_hub_token'); } catch (e) {} }
+    } catch (e) {}
+  })();
   function $(id) { return document.getElementById(id); }
   function esc(s) { return String(s).replace(/"/g, '&quot;'); }
   function toast(m) { var t = $('toast'); t.textContent = m; t.classList.add('show'); setTimeout(function () { t.classList.remove('show'); }, 1600); }
-  function api(p, opts) { return fetch(p, Object.assign({ headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin' }, opts || {})).then(function (r) { return r.json().then(function (j) { return { status: r.status, body: j }; }); }); }
+  function api(p, opts) {
+    opts = opts || {};
+    var headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {});
+    if (HUB_TOKEN) headers['Authorization'] = 'Bearer ' + HUB_TOKEN;
+    return fetch(p, Object.assign({ credentials: 'same-origin' }, opts, { headers: headers })).then(function (r) { return r.json().then(function (j) { return { status: r.status, body: j }; }); });
+  }
   function post(p, body, msg) { api(p, { method: 'POST', body: JSON.stringify(body) }).then(function (res) { toast(res.status === 200 ? (msg || 'Saved') : (res.body.message || 'Save failed')); }); }
   function val(id) { return $(id).value; }
 
@@ -99,7 +113,19 @@
     });
   }
 
+  function carryTokenOnNav() {
+    if (!HUB_TOKEN) return;
+    var links = document.querySelectorAll('nav.nav a');
+    for (var i = 0; i < links.length; i++) {
+      var href = links[i].getAttribute('href');
+      if (href && href.indexOf('hub_token') === -1) {
+        links[i].setAttribute('href', href + (href.indexOf('?') > -1 ? '&' : '?') + 'hub_token=' + encodeURIComponent(HUB_TOKEN));
+      }
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
+    carryTokenOnNav();
     api('/api/config').then(function (res) {
       if (res.status === 403) { $('gate').innerHTML = 'This area is for leadership only.<br><a href="/">Back</a>'; return; }
       if (res.status === 401) { window.location.href = '/'; return; }
