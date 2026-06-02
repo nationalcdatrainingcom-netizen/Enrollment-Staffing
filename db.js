@@ -26,6 +26,7 @@ const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS ch_enrollment (
      id SERIAL PRIMARY KEY, center TEXT NOT NULL,
      under3 INTEGER NOT NULL DEFAULT 0, over3 INTEGER NOT NULL DEFAULT 0,
+     staff_under3 INTEGER NOT NULL DEFAULT 0, staff_over3 INTEGER NOT NULL DEFAULT 0,
      entered_by TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT now()
    )`,
   `CREATE TABLE IF NOT EXISTS ch_staffing (
@@ -51,6 +52,8 @@ const SCHEMA = [
 async function migrate() {
   for (const s of SCHEMA) await q(s);
   try { await q('ALTER TABLE ch_centers ADD COLUMN goal_monthly DOUBLE PRECISION DEFAULT 0'); } catch (e) {}
+  try { await q('ALTER TABLE ch_enrollment ADD COLUMN staff_under3 INTEGER NOT NULL DEFAULT 0'); } catch (e) {}
+  try { await q('ALTER TABLE ch_enrollment ADD COLUMN staff_over3 INTEGER NOT NULL DEFAULT 0'); } catch (e) {}
   return true;
 }
 
@@ -172,8 +175,10 @@ async function latestEnrollment(center) {
   const r = await q('SELECT * FROM ch_enrollment WHERE center=$1 ORDER BY created_at DESC,id DESC LIMIT 1', [center]);
   return r.rowCount ? r.rows[0] : null;
 }
-async function insertEnrollment(center, under3, over3, by) {
-  const r = await q('INSERT INTO ch_enrollment (center,under3,over3,entered_by) VALUES ($1,$2,$3,$4) RETURNING *', [center, under3, over3, by]);
+async function insertEnrollment(center, under3, over3, staffUnder3, staffOver3, by) {
+  const r = await q(
+    'INSERT INTO ch_enrollment (center,under3,over3,staff_under3,staff_over3,entered_by) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *',
+    [center, under3, over3, staffUnder3, staffOver3, by]);
   return r.rows[0];
 }
 async function latestStaffing(center) {
