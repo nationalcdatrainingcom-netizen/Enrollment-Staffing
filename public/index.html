@@ -82,16 +82,27 @@
       <h2>Children enrolled</h2>
       <div class="grid2">
         <div>
-          <label for="under3">Under 3</label>
+          <label for="under3">Under 3 — paying</label>
           <input id="under3" type="number" min="0" step="1" inputmode="numeric" />
           <p class="hint" id="ucap"></p>
         </div>
         <div>
-          <label for="over3">Over 3</label>
+          <label for="over3">Over 3 — paying</label>
           <input id="over3" type="number" min="0" step="1" inputmode="numeric" />
           <p class="hint" id="ocap"></p>
         </div>
       </div>
+      <div class="grid2" style="margin-top:10px">
+        <div>
+          <label for="staff_under3">Under 3 — staff/admin (free)</label>
+          <input id="staff_under3" type="number" min="0" step="1" inputmode="numeric" />
+        </div>
+        <div>
+          <label for="staff_over3">Over 3 — staff/admin (free)</label>
+          <input id="staff_over3" type="number" min="0" step="1" inputmode="numeric" />
+        </div>
+      </div>
+      <p class="hint" style="margin-top:6px">Staff/admin children attend free (not on CDC or Tri-Share). They count toward ratios but not income.</p>
       <p class="hint" id="util"></p>
       <div id="celebrate" class="celebrate hide"></div>
       <button class="save" id="saveEnroll">Save enrollment</button>
