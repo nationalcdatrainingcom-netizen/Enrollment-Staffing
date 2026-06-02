@@ -26,6 +26,7 @@ function clearCookie(res) {
   if (PROD) bits.push('Secure'); res.append('Set-Cookie', bits.join('; '));
 }
 function readToken(req) {
+  if (req.query && req.query.hub_token) return String(req.query.hub_token);
   if (req.query && req.query.token) return String(req.query.token);
   const h = req.headers.authorization; if (h && h.startsWith('Bearer ')) return h.slice(7);
   return parseCookies(req)[COOKIE] || null;
@@ -37,9 +38,15 @@ function identityFromClaims(p) {
 app.get('/healthz', (req, res) => res.json({ ok: true }));
 
 app.use((req, res, next) => {
-  if (req.query && req.query.token) {
-    try { jwt.verify(String(req.query.token), SECRET); setCookie(res, String(req.query.token)); } catch (e) {}
-    if (req.method === 'GET' && !req.path.startsWith('/api/')) return res.redirect(req.path || '/');
+  var urlTok = (req.query && (req.query.hub_token || req.query.token)) ? String(req.query.hub_token || req.query.token) : null;
+  if (urlTok) {
+    try { jwt.verify(urlTok, SECRET); setCookie(res, urlTok); } catch (e) {}
+    // Only strip a plain ?token= (own-tab flow). Leave ?hub_token= in place so the
+    // embedded Hub iframe can read it and send it as a Bearer header (cookies are
+    // blocked in the cross-domain iframe).
+    if (req.method === 'GET' && !req.path.startsWith('/api/') && req.query.token && !req.query.hub_token) {
+      return res.redirect(req.path || '/');
+    }
   }
   next();
 });
