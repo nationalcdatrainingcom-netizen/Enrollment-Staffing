@@ -1,11 +1,23 @@
 'use strict';
 (function () {
   var mode = 'school_year';
+  var HUB_TOKEN = null;
+  (function () {
+    try {
+      var qs = new URLSearchParams(window.location.search);
+      var t = qs.get('hub_token') || qs.get('token');
+      if (t) { HUB_TOKEN = t; try { sessionStorage.setItem('chs_hub_token', t); } catch (e) {} }
+      else { try { HUB_TOKEN = sessionStorage.getItem('chs_hub_token'); } catch (e) {} }
+    } catch (e) {}
+  })();
   function $(id) { return document.getElementById(id); }
   function money(n) { var s = Math.round(n).toLocaleString('en-US'); return n < 0 ? '-$' + Math.abs(Math.round(n)).toLocaleString('en-US') : '$' + s; }
   function pct(n) { return Math.round(n * 100) + '%'; }
   function fte(n) { return (Math.round(n * 10) / 10).toFixed(1); }
-  function api(p) { return fetch(p, { credentials: 'same-origin' }).then(function (r) { return r.json().then(function (j) { return { status: r.status, body: j }; }); }); }
+  function api(p) {
+    var headers = {}; if (HUB_TOKEN) headers['Authorization'] = 'Bearer ' + HUB_TOKEN;
+    return fetch(p, { credentials: 'same-origin', headers: headers }).then(function (r) { return r.json().then(function (j) { return { status: r.status, body: j }; }); });
+  }
 
   function cell(k, v, neg) { return '<div class="cell"><div class="k">' + k + '</div><div class="v' + (neg ? ' neg' : '') + '">' + v + '</div></div>'; }
 
@@ -49,7 +61,19 @@
     });
   }
 
+  function carryTokenOnNav() {
+    if (!HUB_TOKEN) return;
+    var links = document.querySelectorAll('nav.nav a');
+    for (var i = 0; i < links.length; i++) {
+      var href = links[i].getAttribute('href');
+      if (href && href.indexOf('hub_token') === -1) {
+        links[i].setAttribute('href', href + (href.indexOf('?') > -1 ? '&' : '?') + 'hub_token=' + encodeURIComponent(HUB_TOKEN));
+      }
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
+    carryTokenOnNav();
     $('m-sy').addEventListener('click', function () { mode = 'school_year'; this.classList.add('on'); $('m-su').classList.remove('on'); load(); });
     $('m-su').addEventListener('click', function () { mode = 'summer'; this.classList.add('on'); $('m-sy').classList.remove('on'); load(); });
     load();
