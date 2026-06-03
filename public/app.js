@@ -156,6 +156,20 @@
         hideStaffingLine();
         return;
       }
+      // Costs and staffing exist, but fixed costs (rent/overhead) are all $0 — coverage would
+      // ignore overhead and read far too healthy. Don't show a coverage % or a green "covering".
+      if (!d.hasFixed) {
+        if (lead) lead.innerHTML = 'Add this location\u2019s fixed costs to see an accurate picture.';
+        if (fill) fill.style.width = '0%';
+        if (be) be.style.display = 'none';
+        if (st) {
+          st.style.display = ''; st.className = 'status short';
+          st.innerHTML = '<strong>Overhead not entered yet</strong><br><span style="font-weight:400">This location\u2019s rent, utilities, insurance, food, and other overhead haven\u2019t been entered, so this would count payroll only \u2014 making coverage look far healthier than reality. The full picture appears once those are added under Capacities &amp; costs in Settings.</span>';
+        }
+        if (note) note.style.display = '';
+        hideStaffingLine();
+        return;
+      }
 
       if (note) note.style.display = '';
       if (st) st.style.display = '';
@@ -175,23 +189,33 @@
       }
       if (lead) lead.innerHTML = 'Your current enrollment covers about <strong>' + pctCov + '%</strong> of what it costs to run ' + label + ' each month.';
 
-      // Explicit break-even enrollment line, always shown.
+      // Targets block: break-even is always shown; the goal line appears whenever a goal is set,
+      // in every state — so changing the goal in Settings visibly moves a number here.
       if (be) {
         be.style.display = '';
+        var beHtml;
         if (d.meetsBreakEven) {
-          be.innerHTML = '<strong>Break-even:</strong> reached \u2014 enrollment is covering full monthly costs.';
+          beHtml = '<strong>Break-even:</strong> reached \u2014 enrollment is covering full monthly costs.';
         } else {
           var s = d.seatsToBreakEven, z = (s === 1 ? 'more child' : 'more children');
-          be.innerHTML = '<strong>Break-even:</strong> about <strong>' + s + '</strong> ' + z + ' (paying, at your current mix) needed to cover full monthly costs.';
+          beHtml = '<strong>Break-even:</strong> about <strong>' + s + '</strong> ' + z + ' (paying, at your current mix) to cover full monthly costs.';
         }
+        if (d.hasGoal) {
+          if (d.meetsGoal) {
+            beHtml += '<br><strong>Goal:</strong> reached \u2014 enrollment is meeting this location\u2019s target.';
+          } else if (d.seatsToGoal != null) {
+            var sg = d.seatsToGoal, zg = (sg === 1 ? 'more child' : 'more children');
+            beHtml += '<br><strong>Goal:</strong> about <strong>' + sg + '</strong> ' + zg + ' to reach this location\u2019s target.';
+          }
+        }
+        be.innerHTML = beHtml;
       }
 
       if (st) {
         if (d.meetsBreakEven) {
           st.className = 'status ok';
-          if (d.hasGoal && !d.meetsGoal && d.seatsToGoal) {
-            var sgz = d.seatsToGoal === 1 ? 'child' : 'children';
-            st.innerHTML = '<strong>Covering full costs</strong><br><span style="font-weight:400">About ' + d.seatsToGoal + ' more ' + sgz + ' would also reach this center\u2019s goal.</span>';
+          if (d.hasGoal && d.meetsGoal) {
+            st.innerHTML = '<strong>Covering full costs and meeting goal</strong><br><span style="font-weight:400">Your enrollment is paying for everything it takes to run your center, with room to spare. Wonderful work.</span>';
           } else {
             st.innerHTML = '<strong>Covering full costs</strong><br><span style="font-weight:400">Your enrollment is paying for everything it takes to run your center. Wonderful work.</span>';
           }
