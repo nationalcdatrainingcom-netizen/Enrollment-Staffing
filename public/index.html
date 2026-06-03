@@ -111,12 +111,14 @@
 
     <div class="card">
       <h2>Staff on hand</h2>
+      <p class="hint" style="margin:-4px 0 12px">Count each person by their <b>pay level</b>, not their classroom title.</p>
       <div class="srow"><span></span><span class="scol">Full-time</span><span class="scol">Part-time</span></div>
       <div class="srow"><span class="rname">Director</span><input id="dir_ft" type="number" min="0" step="1" inputmode="numeric"/><input id="dir_pt" type="number" min="0" step="1" inputmode="numeric"/></div>
       <div class="srow"><span class="rname">Assistant director</span><input id="ad_ft" type="number" min="0" step="1" inputmode="numeric"/><input id="ad_pt" type="number" min="0" step="1" inputmode="numeric"/></div>
       <div class="srow"><span class="rname">Lead / co-lead</span><input id="lead_ft" type="number" min="0" step="1" inputmode="numeric"/><input id="lead_pt" type="number" min="0" step="1" inputmode="numeric"/></div>
       <div class="srow"><span class="rname">Associate / assistant</span><input id="assoc_ft" type="number" min="0" step="1" inputmode="numeric"/><input id="assoc_pt" type="number" min="0" step="1" inputmode="numeric"/></div>
       <div class="srow"><span class="rname">Caregiver / floater</span><input id="care_ft" type="number" min="0" step="1" inputmode="numeric"/><input id="care_pt" type="number" min="0" step="1" inputmode="numeric"/></div>
+      <p class="hint">Anyone paid at the lead rate goes in <b>Lead / co-lead</b> — even when a room has two leads, or a co-lead alongside a lead. Because costs here are estimated from each role's average pay, entering a paid lead as an assistant makes this location look less expensive to run than it really is, which hides its true financial health.</p>
       <p class="hint">Director &amp; assistant director are not counted toward ratio. Part-time (under 30 hrs) counts as half.</p>
       <button class="save" id="saveStaff">Save staffing</button>
       <p class="saved" id="staffSaved"></p>
