@@ -17,7 +17,7 @@
   })();
 
   function $(id) { return document.getElementById(id); }
-  function num(id) { var v = parseInt($(id).value, 10); return isNaN(v) || v < 0 ? 0 : v; }
+  function num(id) { var el = $(id); if (!el) return 0; var v = parseInt(el.value, 10); return isNaN(v) || v < 0 ? 0 : v; }
   function fmt(n) { return (Math.round(n * 10) / 10).toFixed(1); }
   function toast(msg) { var t = $('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(function () { t.classList.remove('show'); }, 1800); }
   function when(ts) {
@@ -67,7 +67,7 @@
       var room = Math.floor(-surplus);
       if (room >= 1) {
         var word = room === 1 ? 'staff member' : 'staff members';
-        st.innerHTML = '<strong>Room to grow</strong><br><span style="font-weight:400">Your current enrollment would support up to ' + room + ' more teaching ' + word + ' if needed. Keep an eye on your ratios.</span>';
+        st.innerHTML = '<strong>Room to grow</strong><br><span style="font-weight:400">Your current enrollment would support up to ' + room + ' more teaching ' + word + ' if needed. Keep an eye on your ratios, and check the costs panel below before adding hours.</span>';
       } else {
         st.innerHTML = '<strong>Right-sized for current enrollment</strong><br><span style="font-weight:400">Staffing matches your enrollment. Keep an eye on your ratios.</span>';
       }
@@ -105,65 +105,115 @@
     });
   }
 
+  // Paying vs. free (staff/admin) split for the costs panel. Read from the inputs,
+  // which at load/save time hold the saved values — so this stays in step with the
+  // server-computed coverage and never relies on an element that might be missing.
+  function renderSplit() {
+    var sp = $('finSplit'); if (!sp) return;
+    var paying = num('under3') + num('over3');
+    var free = num('staff_under3') + num('staff_over3');
+    if (free > 0) {
+      sp.innerHTML = 'In your building today: <b>' + paying + '</b> paying \u00b7 <b>' + free + '</b> attending free (staff &amp; admin families). Only paying children cover your costs.';
+    } else {
+      sp.innerHTML = 'In your building today: <b>' + paying + '</b> paying ' + (paying === 1 ? 'child' : 'children') + '.';
+    }
+  }
+
   function loadFinance() {
     if (!currentCenter) return;
-    var card = $('financeCard');
+    var card = $('financeCard'); if (!card) return;
     api('/api/center-finance?center=' + encodeURIComponent(currentCenter)).then(function (res) {
       if (res.status !== 200 || !res.body) { card.classList.add('hide'); return; }
       var d = res.body;
       card.classList.remove('hide');
-      var lead = $('finLead'), fill = $('finFill'), st = $('finStatus'), note = $('finNote'), be = $('finBreakeven');
+      var lead = $('finLead'), fill = $('finFill'), st = $('finStatus'), note = $('finNote'),
+          be = $('finBreakeven'), fs = $('finStaffing');
       var label = (CENTERS[currentCenter] ? CENTERS[currentCenter].label : 'your center');
+
+      renderSplit();
+      function hideStaffingLine() { if (fs) { fs.style.display = 'none'; fs.innerHTML = ''; } }
 
       // No costs entered at all yet.
       if (!d.hasCostData) {
-        lead.textContent = 'Cost information for this center hasn\u2019t been entered yet.';
-        fill.style.width = '0%'; be.style.display = 'none';
-        st.style.display = 'none'; note.style.display = 'none';
+        if (lead) lead.textContent = 'Cost information for this center hasn\u2019t been entered yet.';
+        if (fill) fill.style.width = '0%';
+        if (be) be.style.display = 'none';
+        if (st) st.style.display = 'none';
+        if (note) note.style.display = 'none';
+        hideStaffingLine();
         return;
       }
       // Costs exist but staffing hasn't been saved — labor is counted as $0, so the % is misleading.
       if (!d.hasStaffing) {
-        lead.innerHTML = 'Save your staffing above to see an accurate picture.';
-        fill.style.width = '0%'; be.style.display = 'none';
-        st.style.display = ''; st.className = 'status short';
-        st.innerHTML = '<strong>Staffing not saved yet</strong><br><span style="font-weight:400">Until staffing is saved, this only counts overhead \u2014 not the cost of your team \u2014 so the percentage would look far too high. Tap <strong>Save staffing</strong> above.</span>';
-        note.style.display = '';
+        if (lead) lead.innerHTML = 'Save your staffing above to see an accurate picture.';
+        if (fill) fill.style.width = '0%';
+        if (be) be.style.display = 'none';
+        if (st) {
+          st.style.display = ''; st.className = 'status short';
+          st.innerHTML = '<strong>Staffing not saved yet</strong><br><span style="font-weight:400">Until staffing is saved, this only counts overhead \u2014 not the cost of your team \u2014 so the percentage would look far too high. Tap <strong>Save staffing</strong> above.</span>';
+        }
+        if (note) note.style.display = '';
+        hideStaffingLine();
         return;
       }
 
-      note.style.display = ''; st.style.display = '';
+      if (note) note.style.display = '';
+      if (st) st.style.display = '';
       if (d.coverage == null) {
-        lead.textContent = 'Enter your enrollment to see how it tracks against costs.';
-        fill.style.width = '0%'; be.style.display = 'none'; st.className = 'status'; st.textContent = '';
+        if (lead) lead.textContent = 'Enter your enrollment to see how it tracks against costs.';
+        if (fill) fill.style.width = '0%';
+        if (be) be.style.display = 'none';
+        if (st) { st.className = 'status'; st.textContent = ''; }
+        hideStaffingLine();
         return;
       }
 
       var pctCov = Math.round(d.coverage * 100);
-      fill.style.width = Math.max(0, Math.min(100, pctCov)) + '%';
-      fill.style.background = d.meetsBreakEven ? 'var(--green)' : (d.coverage >= 0.85 ? '#d9a300' : 'var(--red)');
-      lead.innerHTML = 'Your current enrollment covers about <strong>' + pctCov + '%</strong> of what it costs to run ' + label + ' each month.';
+      if (fill) {
+        fill.style.width = Math.max(0, Math.min(100, pctCov)) + '%';
+        fill.style.background = d.meetsBreakEven ? 'var(--green)' : (d.coverage >= 0.85 ? '#d9a300' : 'var(--red)');
+      }
+      if (lead) lead.innerHTML = 'Your current enrollment covers about <strong>' + pctCov + '%</strong> of what it costs to run ' + label + ' each month.';
 
       // Explicit break-even enrollment line, always shown.
-      be.style.display = '';
-      if (d.meetsBreakEven) {
-        be.innerHTML = '<strong>Break-even:</strong> reached \u2014 enrollment is covering full monthly costs.';
-      } else {
-        var s = d.seatsToBreakEven, z = (s === 1 ? 'more child' : 'more children');
-        be.innerHTML = '<strong>Break-even:</strong> about <strong>' + s + '</strong> ' + z + ' (paying, at your current mix) needed to cover full monthly costs.';
+      if (be) {
+        be.style.display = '';
+        if (d.meetsBreakEven) {
+          be.innerHTML = '<strong>Break-even:</strong> reached \u2014 enrollment is covering full monthly costs.';
+        } else {
+          var s = d.seatsToBreakEven, z = (s === 1 ? 'more child' : 'more children');
+          be.innerHTML = '<strong>Break-even:</strong> about <strong>' + s + '</strong> ' + z + ' (paying, at your current mix) needed to cover full monthly costs.';
+        }
       }
 
-      if (d.meetsBreakEven) {
-        st.className = 'status ok';
-        if (d.hasGoal && !d.meetsGoal && d.seatsToGoal) {
-          var sgz = d.seatsToGoal === 1 ? 'child' : 'children';
-          st.innerHTML = '<strong>Covering full costs</strong><br><span style="font-weight:400">About ' + d.seatsToGoal + ' more ' + sgz + ' would also reach your center\u2019s goal.</span>';
+      if (st) {
+        if (d.meetsBreakEven) {
+          st.className = 'status ok';
+          if (d.hasGoal && !d.meetsGoal && d.seatsToGoal) {
+            var sgz = d.seatsToGoal === 1 ? 'child' : 'children';
+            st.innerHTML = '<strong>Covering full costs</strong><br><span style="font-weight:400">About ' + d.seatsToGoal + ' more ' + sgz + ' would also reach this center\u2019s goal.</span>';
+          } else {
+            st.innerHTML = '<strong>Covering full costs</strong><br><span style="font-weight:400">Your enrollment is paying for everything it takes to run your center. Wonderful work.</span>';
+          }
         } else {
-          st.innerHTML = '<strong>Covering full costs</strong><br><span style="font-weight:400">Your enrollment is paying for everything it takes to run your center. Great work.</span>';
+          st.className = (d.coverage >= 0.85) ? 'status short' : 'status bad';
+          st.innerHTML = '<strong>Working toward covering full costs</strong><br><span style="font-weight:400">Every paying family you enroll brings this center closer to paying for itself.</span>';
         }
-      } else {
-        st.className = (d.coverage >= 0.85) ? 'status short' : 'status bad';
-        st.innerHTML = '<strong>Not yet covering full costs</strong><br><span style="font-weight:400">Growing enrollment closes the gap; trimming staff to ratio when you can also lowers what\u2019s needed.</span>';
+      }
+
+      // Staffing-decision line — the affordability lens, kept calm (muted, never alarm-red).
+      // This is a separate question from the ratio/safety card above: ratio asks "how many
+      // staff do the children present require?"; this asks "can paying enrollment carry them?"
+      if (fs) {
+        fs.style.display = ''; fs.className = 'band';
+        if (d.meetsBreakEven) {
+          fs.innerHTML = '\uD83D\uDC9B Your paying enrollment supports your current team. Staff your rooms to ratio with confidence.';
+        } else if (d.coverage >= 0.85) {
+          var s2 = d.seatsToBreakEven, z2 = (s2 === 1 ? 'family' : 'families');
+          fs.innerHTML = 'You\u2019re nearly there \u2014 about <b>' + s2 + '</b> more enrolled ' + z2 + ' covers your team. A good moment to hold hours steady and fill those last openings before adding any.';
+        } else {
+          fs.innerHTML = 'Right now there are more open seats than enrollment is paying for. Until they fill, the gentlest way to protect everyone\u2019s hours is often to combine two lighter rooms for a season \u2014 fewer rooms to staff, and no one\u2019s schedule at risk. Worth talking through with the admin team before openings grow.';
+        }
       }
     }).catch(function () { card.classList.add('hide'); });
   }
