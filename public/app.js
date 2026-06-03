@@ -210,9 +210,10 @@
           fs.innerHTML = '\uD83D\uDC9B Your paying enrollment supports your current team. Staff your rooms to ratio with confidence.';
         } else if (d.coverage >= 0.85) {
           var s2 = d.seatsToBreakEven, z2 = (s2 === 1 ? 'family' : 'families');
-          fs.innerHTML = 'You\u2019re nearly there \u2014 about <b>' + s2 + '</b> more enrolled ' + z2 + ' covers your team. A good moment to hold hours steady and fill those last openings before adding any.';
+          fs.innerHTML = 'You\u2019re close \u2014 about <b>' + s2 + '</b> more enrolled ' + z2 + ' covers your team. Until then, hold staffing hours steady and combine rooms when you can, and keep working to fill those last openings.';
         } else {
-          fs.innerHTML = 'Right now there are more open seats than enrollment is paying for. Until they fill, the gentlest way to protect everyone\u2019s hours is often to combine two lighter rooms for a season \u2014 fewer rooms to staff, and no one\u2019s schedule at risk. Worth talking through with the admin team before openings grow.';
+          var s3 = d.seatsToBreakEven, z3 = (s3 === 1 ? 'child' : 'children');
+          fs.innerHTML = 'Right now there are more open seats than enrollment is paying for \u2014 about <b>' + s3 + '</b> more enrolled ' + z3 + ' would bring this center to break-even. Until they fill, combine your lighter rooms for a season \u2014 for example, three lightly enrolled rooms can often become two \u2014 while keeping each room within its required ratio. Combining isn\u2019t always ideal, but when there isn\u2019t funding to cover extra staffing, that becomes the deciding factor. Lean on your marketing handbook, and keep working to fill those spots.';
         }
       }
     }).catch(function () { card.classList.add('hide'); });
